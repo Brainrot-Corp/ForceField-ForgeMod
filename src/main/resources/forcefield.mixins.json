@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.teamcroquette.forcefield.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "forcefield.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
