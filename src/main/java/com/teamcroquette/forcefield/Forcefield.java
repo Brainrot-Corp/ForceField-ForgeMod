@@ -8,6 +8,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.MobEffectEvent;
@@ -37,6 +38,7 @@ public class Forcefield {
     public static final String NBT_KEY_LAST_POS_Z = "ForceField_LastPosZ";
 
     public static final String NBT_KEY_ACTIVE = "ForceField_Active";
+    public static final String NBT_FIRST_TICK = "FirstTick_Ran";
 
     public Forcefield() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -65,6 +67,7 @@ public class Forcefield {
             return;
         }
         player.addTag(NBT_KEY_ACTIVE);
+        LOGGER.info("Setting NBT TAG for ForceField");
     }
 
     // --- 1. Prevent all Status Effects (Potions) from being applied ---
@@ -97,6 +100,8 @@ public class Forcefield {
     public void onLivingTick(LivingEvent.LivingTickEvent event) {
         if (event.getEntity() instanceof Player player) {
             CompoundTag playerData = player.getPersistentData();
+
+            if (!player.getTags().contains(NBT_KEY_ACTIVE)) {return;}
 
             double currentX = player.getX();
             double currentY = player.getY();
