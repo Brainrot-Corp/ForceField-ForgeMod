@@ -1,34 +1,29 @@
 package com.teamcroquette.forcefield;
 
-import com.ibm.icu.text.UFormat;
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.world.food.FoodProperties;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.material.MapColor;
-import net.minecraftforge.api.distmarker.Dist;
+import net.minecraft.client.model.geom.builders.MaterialDefinition;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+
+import java.util.Objects;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Forcefield.MODID)
@@ -54,5 +49,43 @@ public class Forcefield {
     public void onServerStarting(ServerStartingEvent event) {
         // Do something when the server starts
         LOGGER.info("HELLO from server starting");
+    }
+
+    @SubscribeEvent
+    public void onPlayerLoggedIn(EntityJoinLevelEvent event) {
+        Entity entity = event.getEntity();
+
+        if (!entity.acceptsFailure()) { return; }
+
+        if (!(entity instanceof Player player)) {
+            return;
+        }
+        player.addTag("ForceFieldActive");
+    }
+
+    // --- 1. Prevent all Status Effects (Potions) from being applied ---
+    @SubscribeEvent
+    public static void onPotionApplicable(MobEffectEvent.Applicable event) {
+        LivingEntity entity = event.getEntity();
+
+        // Apply this only to players
+        if (entity instanceof Player) {
+            if (event.getEntity().getTags().contains("ForceFieldActive")) {
+                event.setResult(Event.Result.DENY);
+            }
+        }
+    }
+
+    // --- 2. Prevent all Status Effects (Potions) from being applied ---
+    @SubscribeEvent
+    public void onLivingAttack(LivingAttackEvent event) {
+        LivingEntity entity = event.getEntity();
+
+        if (entity instanceof Player) {
+            if (event.getEntity().getTags().contains("ForceFieldActive")) {
+                event.getEntity().clearFire();
+                event.setCanceled(true);
+            }
+        }
     }
 }
