@@ -1,16 +1,14 @@
 package com.teamcroquette.forcefield;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.model.geom.builders.MaterialDefinition;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.MobEffectEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -33,6 +31,12 @@ public class Forcefield {
     public static final String MODID = "forcefield";
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
+
+    public static final String NBT_KEY_LAST_POS_X = "ForceField_LastPosX";
+    public static final String NBT_KEY_LAST_POS_Y = "ForceField_LastPosY";
+    public static final String NBT_KEY_LAST_POS_Z = "ForceField_LastPosZ";
+
+    public static final String NBT_KEY_ACTIVE = "ForceField_Active";
 
     public Forcefield() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -60,7 +64,7 @@ public class Forcefield {
         if (!(entity instanceof Player player)) {
             return;
         }
-        player.addTag("ForceFieldActive");
+        player.addTag(NBT_KEY_ACTIVE);
     }
 
     // --- 1. Prevent all Status Effects (Potions) from being applied ---
@@ -70,7 +74,7 @@ public class Forcefield {
 
         // Apply this only to players
         if (entity instanceof Player) {
-            if (event.getEntity().getTags().contains("ForceFieldActive")) {
+            if (event.getEntity().getTags().contains(NBT_KEY_ACTIVE)) {
                 event.setResult(Event.Result.DENY);
             }
         }
@@ -82,10 +86,41 @@ public class Forcefield {
         LivingEntity entity = event.getEntity();
 
         if (entity instanceof Player) {
-            if (event.getEntity().getTags().contains("ForceFieldActive")) {
+            if (event.getEntity().getTags().contains(NBT_KEY_ACTIVE)) {
                 event.getEntity().clearFire();
                 event.setCanceled(true);
             }
+        }
+    }
+
+    @SubscribeEvent
+    public void onLivingTick(LivingEvent.LivingTickEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            CompoundTag playerData = player.getPersistentData();
+
+            double currentX = player.getX();
+            double currentY = player.getY();
+            double currentZ = player.getZ();
+
+            double lastX = playerData.contains(NBT_KEY_LAST_POS_X) ? playerData.getDouble(NBT_KEY_LAST_POS_X) : currentX;
+            double lastY = playerData.contains(NBT_KEY_LAST_POS_Y) ? playerData.getDouble(NBT_KEY_LAST_POS_Y) : currentY;
+            double lastZ = playerData.contains(NBT_KEY_LAST_POS_Z) ? playerData.getDouble(NBT_KEY_LAST_POS_Z) : currentZ;
+
+            double movementThresholdSq = 0.001;
+
+            if (player.distanceToSqr(lastX, lastY, lastZ) > movementThresholdSq) {
+                // *** The player has moved! ***
+                player.removeTag(NBT_KEY_ACTIVE);
+
+                // 2. Clear all status effects the player currently has
+                player.removeEffect(MobEffects.POISON);
+                player.removeEffect(MobEffects.WITHER);
+            }
+
+            // Always update the player's last known position for the next tick's comparison.
+            playerData.putDouble(NBT_KEY_LAST_POS_X, currentX);
+            playerData.putDouble(NBT_KEY_LAST_POS_Y, currentY);
+            playerData.putDouble(NBT_KEY_LAST_POS_Z, currentZ);
         }
     }
 }
