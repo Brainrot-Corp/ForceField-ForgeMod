@@ -8,7 +8,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.MobEffectEvent;
@@ -22,12 +21,9 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 
-import java.util.Objects;
-
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Forcefield.MODID)
 public class Forcefield {
-
     // Define mod id in a common place for everything to reference
     public static final String MODID = "forcefield";
     // Directly reference a slf4j logger
@@ -38,7 +34,6 @@ public class Forcefield {
     public static final String NBT_KEY_LAST_POS_Z = "ForceField_LastPosZ";
 
     public static final String NBT_KEY_ACTIVE = "ForceField_Active";
-    public static final String NBT_FIRST_TICK = "FirstTick_Ran";
 
     public Forcefield() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -54,7 +49,7 @@ public class Forcefield {
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         // Do something when the server starts
-        LOGGER.info("HELLO from server starting");
+        LOGGER.info("ForceField is initialized!");
     }
 
     @SubscribeEvent
@@ -120,6 +115,12 @@ public class Forcefield {
                 // 2. Clear all status effects the player currently has
                 player.removeEffect(MobEffects.POISON);
                 player.removeEffect(MobEffects.WITHER);
+
+                // Clear the playerData
+                playerData.remove(NBT_KEY_LAST_POS_X);
+                playerData.remove(NBT_KEY_LAST_POS_Y);
+                playerData.remove(NBT_KEY_LAST_POS_Z);
+                return;
             }
 
             // Always update the player's last known position for the next tick's comparison.
